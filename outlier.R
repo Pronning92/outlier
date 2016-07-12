@@ -19,7 +19,7 @@ date=Sys.time()
 date = sub(" .*","",date)
 figurePath=paste("figures/", date, "/",sep="")
 system(paste("mkdir ", figurePath, sep=""))
-pd = paste(figurePath, date, "_premed", sep="")
+pd = paste(figurePath, date, sep="")
 
 ##### functions #####
 unfactorize = function(df){
@@ -38,6 +38,11 @@ find_outlier = function(m, name="dataset", barplot = TRUE, plot=TRUE, printOrder
   cat(paste("Looking for outliers in", deparse(substitute(genes)), "of", name, "\n", sep=" "))
   cat(paste("Original number of markers:", num, "; NA filtered:", num_NA, "\n", sep=" "))
   
+	if ( nrow(m2) <= 0 ) {
+		cat( "No outliers\n" )
+		return(list("outlier_score"= NULL , "outlier"= NULL , "count_results"= NULL ,
+					"top_outlier_zscore"= NULL , "top_outlier"= NULL , "top_outlier_boolean"= NULL ))
+	}
   ##### outlier analysis #####
   outlier = matrix(,nrow=dim(m2)[1],ncol=dim(m2)[2])
   row.names(outlier) = row.names(m2)
@@ -175,17 +180,77 @@ find_outlier = function(m, name="dataset", barplot = TRUE, plot=TRUE, printOrder
 }
 
 ##### MAIN CODE: demonstrate usage #####
-if (FALSE){ 
-  # read in a gene list
-  druggable_f = read.table(header=FALSE, stringsAsFactors = F, file = "genes_for_highExpression_analysis_20160128.txt")
-  druggable = as.vector(t(druggable_f))
-  
-  # expect a gene-sample (row-column) dataset
-  expTab = read.table(header=TRUE, sep="\t", file='/Users/khuang/Box\ Sync/PhD/collaborations/premed_2015/data/All_gene_RNASeq/raw_output/BRCA_RSEM_hugo.txt')
-  names = make.names(expTab[,1], unique =T)
-  row.names(expTab) = names
-  
-  expTab.d = expTab[names %in% druggable,-c(1,2)] # extract only the druggable genes
-  expTab.d = log2(unfactorize(expTab.d)+1) # log2 transofrm
-  expTab_druggable = find_outlier(expTab.d, name = "druggable exp") # find outlier
+get_val_arg = function( args , flag , default ) {
+    ix = pmatch( flag , args ); #partial match of flag in args, returns index in argument list
+    if ( !is.na( ix ) ) { #ix is a pmatch of flag in args
+        if ( is.numeric( default ) ) {
+            val = as.numeric( args[ix+1] );
+        } else {
+            val = args[ix+1];
+        }
+    } else {
+        val = default;
+    }
+    return( val );
 }
+
+get_bool_arg = function( args , flag ) {
+    ix = pmatch( flag , args );
+    if ( !is.na( ix ) ) {
+        val = TRUE;
+    } else {
+        val = FALSE;
+    }
+    return( val );
+}
+
+get_list_arg = function( args , flag , nargs , default ) {
+    ix = pmatch( flag , args ); #partial match of flag in args
+    vals = 1:nargs;
+    if ( !is.na( ix ) ) { #ix is a pmatch of flag in args
+        for ( i in 1:nargs ) {
+            if ( is.numeric( default ) ) {
+                vals[i] = as.numeric( args[ix+i] );
+            } else {
+                vals[i] = args[ix+i];
+            }
+        }
+    } else {
+        for ( i in 1:nargs ) {
+            vals[i] = default;
+        }
+    }
+    return( vals );
+}
+
+
+parse_args = function() {
+    args = commandArgs( trailingOnly = TRUE ); #tailingOnly = TRUE, arguments after --args are returned
+
+    geneListFile = get_val_arg( args , "-l" , "" );
+    matrixFile = get_val_arg( args , "-m" , "" );
+
+    val = list( 'geneListFile' = geneListFile ,
+                'matrixFile' = matrixFile );
+
+    return( val );
+}
+#get args
+args = parse_args();
+geneListFile = args$geneListFile
+matrixFile = args$matrixFile
+
+# read in a gene list
+druggable_f = read.table(header=FALSE, stringsAsFactors = F, file = geneListFile )
+druggable = as.vector(t(druggable_f))
+cat( paste( c( "There are" , length( druggable ) , "genes in the input gene list\n" ) ) )
+
+# expect a gene-sample (row-column) dataset
+expTab = read.table(header=TRUE, sep="\t", file= matrixFile )
+cat( paste( c( "There are" , nrow( expTab ) , "genes and" , ncol( expTab ) , "samples in the expression matrix\n" ) ) )
+names = make.names(expTab[,1], unique =T)
+row.names(expTab) = names
+
+expTab.d = expTab[names %in% druggable,-c(1,2)] # extract only the druggable genes
+expTab.d = log2(unfactorize(expTab.d)+1) # log2 transofrm
+expTab_druggable = find_outlier(expTab.d, name = "druggable exp") # find outlier
