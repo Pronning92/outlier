@@ -80,7 +80,6 @@ matrixFile = args$matrixFile
 # read in a gene list
 geneList = read.table(header=FALSE, stringsAsFactors = F, file = geneListFile )
 geneVector = as.vector(t(geneList))
-
 # expect a gene-sample (row-column) dataset
 expTab = read.table(header=TRUE, sep="\t", file= matrixFile )
 cat( paste( c( "There are" , nrow( expTab ) , "genes and" , ncol( expTab ) , "samples in the expression matrix\n" ) ) )
@@ -153,11 +152,15 @@ find_outlier = function(m, name="dataset", barplot = TRUE, plot=TRUE, printOrder
   results$cohort_size = dim(outlier)[2]
   results$freq = results$count/results$cohort_size
   results$marker = row.names(results)
+  results = results[,c(5,2,3,1,4)]
+  
+  fn = paste(pd,name,'outlier_gene_counts.txt', sep="_")
+  write.table(results, file=fn, quote=F, row.names=F, sep="\t", col.names=T)
   
   # plotting bar plots indicating number of samples having the gene outlier
   if (barplot){
-    fn = paste(pd, name, '_outlier_counts.pdf',sep ="_")
-    results_sum = results[c(1:10),,drop=F]
+    fn = paste(pd, name, '_outlier_gene_counts.pdf',sep ="_")
+    results_sum = results#[c(1:10),,drop=F]
     results_sum$marker = factor(results_sum$marker, levels = results_sum$marker[order(results_sum$count, decreasing=T)])
     
     p = ggplot(data=results_sum, aes(x=marker, y=count))
@@ -165,7 +168,7 @@ find_outlier = function(m, name="dataset", barplot = TRUE, plot=TRUE, printOrder
     p = p + labs(title = name, x="Markers", y="Count of samples") + theme_bw() #+ ylim(c(0,100))
     p = p + theme(text = element_text(colour="black", size=18), axis.text.x = element_text(angle = 90, vjust = 0.5, colour="black", size=14), axis.text.y = element_text(colour="black", size=14))
     p
-    ggsave(file=fn, height=7, width=7, useDingbats=FALSE)   
+    ggsave(file=fn, useDingbats=FALSE)   
   }
   
   ##### rank outliers and set up return matrixes #####
@@ -257,7 +260,7 @@ find_outlier = function(m, name="dataset", barplot = TRUE, plot=TRUE, printOrder
 
 ##### MAIN #####
 
-expTab.d = expTab[names %in% geneVector,-c(1,2)] # extract only the geneVector genes
+expTab.d = expTab[names %in% geneVector,-1] # extract only the geneVector genes; get rid of row names
 expTab.d = log2(unfactorize(expTab.d)+1) # log2 transofrm
 expTab_geneVector = find_outlier(expTab.d, name = paste( geneListFile , matrixFile , "geneVector_exp" , sep = "." ) ) # find outlier
 
