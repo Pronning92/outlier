@@ -13,6 +13,82 @@ library(reshape2)
 library(RColorBrewer)
 library(matrixStats)
 
+##### READ DATA #####
+get_val_arg = function( args , flag , default ) {
+    ix = pmatch( flag , args ); #partial match of flag in args, returns index in argument list
+    if ( !is.na( ix ) ) { #ix is a pmatch of flag in args
+        if ( is.numeric( default ) ) {
+            val = as.numeric( args[ix+1] );
+        } else {
+            val = args[ix+1];
+        }
+    } else {
+        val = default;
+    }
+    return( val );
+}
+
+get_bool_arg = function( args , flag ) {
+    ix = pmatch( flag , args );
+    if ( !is.na( ix ) ) {
+        val = TRUE;
+    } else {
+        val = FALSE;
+    }
+    return( val );
+}
+
+get_list_arg = function( args , flag , nargs , default ) {
+    ix = pmatch( flag , args ); #partial match of flag in args
+    vals = 1:nargs;
+    if ( !is.na( ix ) ) { #ix is a pmatch of flag in args
+        for ( i in 1:nargs ) {
+            if ( is.numeric( default ) ) {
+                vals[i] = as.numeric( args[ix+i] );
+            } else {
+                vals[i] = args[ix+i];
+            }
+        }
+    } else {
+        for ( i in 1:nargs ) {
+            vals[i] = default;
+        }
+    }
+    return( vals );
+}
+
+
+parse_args = function() {
+    args = commandArgs( trailingOnly = TRUE ); #tailingOnly = TRUE, arguments after --args are returned
+
+    geneListFile = get_val_arg( args , "-l" , "" );
+#    geneCongersionFile = get_val_arg( args , "-c" , "" );
+    matrixFile = get_val_arg( args , "-m" , "" );
+
+    val = list( 'geneListFile' = geneListFile ,
+#				'geneConversionFile' = geneConversionFile , 
+                'matrixFile' = matrixFile );
+
+    return( val );
+}
+#get args
+args = parse_args();
+geneListFile = args$geneListFile
+#geneConversionFile = args$geneConversionFile
+matrixFile = args$matrixFile
+
+# read in a gene list
+geneList = read.table(header=FALSE, stringsAsFactors = F, file = geneListFile )
+geneVector = as.vector(t(geneList))
+
+# expect a gene-sample (row-column) dataset
+expTab = read.table(header=TRUE, sep="\t", file= matrixFile )
+cat( paste( c( "There are" , nrow( expTab ) , "genes and" , ncol( expTab ) , "samples in the expression matrix\n" ) ) )
+names = make.names(expTab[,1], unique =T)
+row.names(expTab) = names
+
+##### ALGORITHM #####
+
 # mis
 system("mkdir figures")
 date=Sys.time()
@@ -179,78 +255,9 @@ find_outlier = function(m, name="dataset", barplot = TRUE, plot=TRUE, printOrder
               "top_outlier_zscore"=top_outlier_zscore, "top_outlier"=top_outlier, "top_outlier_boolean"=top_outlier_boolean))
 }
 
-##### MAIN CODE: demonstrate usage #####
-get_val_arg = function( args , flag , default ) {
-    ix = pmatch( flag , args ); #partial match of flag in args, returns index in argument list
-    if ( !is.na( ix ) ) { #ix is a pmatch of flag in args
-        if ( is.numeric( default ) ) {
-            val = as.numeric( args[ix+1] );
-        } else {
-            val = args[ix+1];
-        }
-    } else {
-        val = default;
-    }
-    return( val );
-}
+##### MAIN #####
 
-get_bool_arg = function( args , flag ) {
-    ix = pmatch( flag , args );
-    if ( !is.na( ix ) ) {
-        val = TRUE;
-    } else {
-        val = FALSE;
-    }
-    return( val );
-}
-
-get_list_arg = function( args , flag , nargs , default ) {
-    ix = pmatch( flag , args ); #partial match of flag in args
-    vals = 1:nargs;
-    if ( !is.na( ix ) ) { #ix is a pmatch of flag in args
-        for ( i in 1:nargs ) {
-            if ( is.numeric( default ) ) {
-                vals[i] = as.numeric( args[ix+i] );
-            } else {
-                vals[i] = args[ix+i];
-            }
-        }
-    } else {
-        for ( i in 1:nargs ) {
-            vals[i] = default;
-        }
-    }
-    return( vals );
-}
-
-
-parse_args = function() {
-    args = commandArgs( trailingOnly = TRUE ); #tailingOnly = TRUE, arguments after --args are returned
-
-    geneListFile = get_val_arg( args , "-l" , "" );
-    matrixFile = get_val_arg( args , "-m" , "" );
-
-    val = list( 'geneListFile' = geneListFile ,
-                'matrixFile' = matrixFile );
-
-    return( val );
-}
-#get args
-args = parse_args();
-geneListFile = args$geneListFile
-matrixFile = args$matrixFile
-
-# read in a gene list
-druggable_f = read.table(header=FALSE, stringsAsFactors = F, file = geneListFile )
-druggable = as.vector(t(druggable_f))
-cat( paste( c( "There are" , length( druggable ) , "genes in the input gene list\n" ) ) )
-
-# expect a gene-sample (row-column) dataset
-expTab = read.table(header=TRUE, sep="\t", file= matrixFile )
-cat( paste( c( "There are" , nrow( expTab ) , "genes and" , ncol( expTab ) , "samples in the expression matrix\n" ) ) )
-names = make.names(expTab[,1], unique =T)
-row.names(expTab) = names
-
-expTab.d = expTab[names %in% druggable,-c(1,2)] # extract only the druggable genes
+expTab.d = expTab[names %in% geneVector,-c(1,2)] # extract only the geneVector genes
 expTab.d = log2(unfactorize(expTab.d)+1) # log2 transofrm
-expTab_druggable = find_outlier(expTab.d, name = "druggable exp") # find outlier
+expTab_geneVector = find_outlier(expTab.d, name = paste( geneListFile , matrixFile , "geneVector_exp" , sep = "." ) ) # find outlier
+
