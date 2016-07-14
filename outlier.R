@@ -64,9 +64,11 @@ parse_args = function() {
     geneListFile = get_val_arg( args , "-l" , "" );
 #    geneCongersionFile = get_val_arg( args , "-c" , "" );
     matrixFile = get_val_arg( args , "-m" , "" );
+    outputDir = get_val_arg( args , "-o" , "" );
 
     val = list( 'geneListFile' = geneListFile ,
 #				'geneConversionFile' = geneConversionFile , 
+				'outputDir' = outputDir , 
                 'matrixFile' = matrixFile );
 
     return( val );
@@ -75,6 +77,8 @@ parse_args = function() {
 args = parse_args();
 geneListFile = args$geneListFile
 #geneConversionFile = args$geneConversionFile
+outputDir = args$outputDir
+odir = strsplit( outputDir , "/" )
 matrixFile = args$matrixFile
 
 # read in a gene list
@@ -89,12 +93,10 @@ row.names(expTab) = names
 ##### ALGORITHM #####
 
 # mis
-system("mkdir figures")
+#system("mkdir figures")
 date=Sys.time()
 date = sub(" .*","",date)
-figurePath=paste("figures/", date, "/",sep="")
-system(paste("mkdir ", figurePath, sep=""))
-pd = paste(figurePath, date, sep="")
+pd = paste( outputDir , date , sep = "/" )
 
 ##### functions #####
 unfactorize = function(df){
@@ -262,5 +264,5 @@ find_outlier = function(m, name="dataset", barplot = TRUE, plot=TRUE, printOrder
 
 expTab.d = expTab[names %in% geneVector,-1] # extract only the geneVector genes; get rid of row names
 expTab.d = log2(unfactorize(expTab.d)+1) # log2 transofrm
-expTab_geneVector = find_outlier(expTab.d, name = paste( geneListFile , matrixFile , "geneVector_exp" , sep = "." ) ) # find outlier
+expTab_geneVector = find_outlier(expTab.d, name = paste( strsplit( geneListFile , "/" )[[1]][-1] , strsplit( matrixFile , "/" )[[1]][-1] , "geneVector_exp" , sep = "." ) ) # find outlier
 
