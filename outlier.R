@@ -15,74 +15,78 @@ library(matrixStats)
 
 ##### READ DATA #####
 get_val_arg = function( args , flag , default ) {
-    ix = pmatch( flag , args ); #partial match of flag in args, returns index in argument list
-    if ( !is.na( ix ) ) { #ix is a pmatch of flag in args
-        if ( is.numeric( default ) ) {
-            val = as.numeric( args[ix+1] );
-        } else {
-            val = args[ix+1];
-        }
+  ix = pmatch( flag , args ); #partial match of flag in args, returns index in argument list
+  if ( !is.na( ix ) ) { #ix is a pmatch of flag in args
+    if ( is.numeric( default ) ) {
+      val = as.numeric( args[ix+1] );
     } else {
-        val = default;
+      val = args[ix+1];
     }
-    return( val );
+  } else {
+    val = default;
+  }
+  return( val );
 }
 
 get_bool_arg = function( args , flag ) {
-    ix = pmatch( flag , args );
-    if ( !is.na( ix ) ) {
-        val = TRUE;
-    } else {
-        val = FALSE;
-    }
-    return( val );
+  ix = pmatch( flag , args );
+  if ( !is.na( ix ) ) {
+    val = TRUE;
+  } else {
+    val = FALSE;
+  }
+  return( val );
 }
 
 get_list_arg = function( args , flag , nargs , default ) {
-    ix = pmatch( flag , args ); #partial match of flag in args
-    vals = 1:nargs;
-    if ( !is.na( ix ) ) { #ix is a pmatch of flag in args
-        for ( i in 1:nargs ) {
-            if ( is.numeric( default ) ) {
-                vals[i] = as.numeric( args[ix+i] );
-            } else {
-                vals[i] = args[ix+i];
-            }
-        }
-    } else {
-        for ( i in 1:nargs ) {
-            vals[i] = default;
-        }
+  ix = pmatch( flag , args ); #partial match of flag in args
+  vals = 1:nargs;
+  if ( !is.na( ix ) ) { #ix is a pmatch of flag in args
+    for ( i in 1:nargs ) {
+      if ( is.numeric( default ) ) {
+        vals[i] = as.numeric( args[ix+i] );
+      } else {
+        vals[i] = args[ix+i];
+      }
     }
-    return( vals );
+  } else {
+    for ( i in 1:nargs ) {
+      vals[i] = default;
+    }
+  }
+  return( vals );
 }
 
 
 parse_args = function() {
-    args = commandArgs( trailingOnly = TRUE ); #tailingOnly = TRUE, arguments after --args are returned
-
-    geneListFile = get_val_arg( args , "-l" , "" );
-    cutoff = get_val_arg( args , "-c" , "" );
-#    geneCongersionFile = get_val_arg( args , "-c" , "" );
-    matrixFile = get_val_arg( args , "-m" , "" );
-    outputDir = get_val_arg( args , "-o" , "" );
-
-    val = list( 'geneListFile' = geneListFile ,
-#				'geneConversionFile' = geneConversionFile , 
-				'cutoff' = cutoff , 
-				'outputDir' = outputDir , 
-                'matrixFile' = matrixFile );
-
-    return( val );
+  args = commandArgs( trailingOnly = TRUE ); #tailingOnly = TRUE, arguments after --args are returned
+  
+  geneListFile = get_val_arg( args , "-l" , "" );
+  cutoff = get_val_arg( args , "-c" , "" );
+  #geneCongersionFile = get_val_arg( args , "-c" , "" );
+  matrixFile = get_val_arg( args , "-m" , "" );
+  outputDir = get_val_arg( args , "-o" , "" );
+  logTrans = get_bool_arg( args , "-t");
+  
+  val = list( 'geneListFile' = geneListFile ,
+              #'geneConversionFile' = geneConversionFile , 
+              'cutoff' = cutoff , 
+              'outputDir' = outputDir , 
+              'matrixFile' = matrixFile,
+              "logTrans" = logTrans);
+  
+  return( val );
 }
 #get args
 args = parse_args();
 geneListFile = args$geneListFile
 #geneConversionFile = args$geneConversionFile
-cutoff = args$cutoff
 outputDir = args$outputDir
 odir = strsplit( outputDir , "/" )
 matrixFile = args$matrixFile
+
+cutoff = 1.5
+if (args$cutoff != ""){cutoff = args$cutoff}
 
 # read in a gene list
 geneList = read.table(header=FALSE, stringsAsFactors = F, file = geneListFile )
@@ -108,7 +112,7 @@ unfactorize = function(df){
 }
 
 ##### use the box plot definition of outlier, then rank them by the outlier score ##### 
-find_outlier = function(m, name="dataset", barplot = TRUE, plot=TRUE, printOrderTables=F, h=30, w=44, minNum = 10 , multiplier = 1.5){ 
+find_outlier = function(m, name="dataset", barplot = TRUE, plot=TRUE, printOrderTables=F, minNum = 10 , multiplier = 1.5){ 
   #w=40 for human panels with ~80 samples
   cat("##### OUTLIER ANALYSIS #####\n")
   m = as.matrix(m)
@@ -118,11 +122,11 @@ find_outlier = function(m, name="dataset", barplot = TRUE, plot=TRUE, printOrder
   cat(paste("Looking for outliers in", deparse(substitute(genes)), "of", name, "\n", sep=" "))
   cat(paste("Original number of markers:", num, "; NA filtered:", num_NA, "\n", sep=" "))
   
-	if ( nrow(m2) <= 0 ) {
-		cat( "No outliers\n" )
-		return(list("outlier_score"= NULL , "outlier"= NULL , "count_results"= NULL ,
-					"top_outlier_zscore"= NULL , "top_outlier"= NULL , "top_outlier_boolean"= NULL ))
-	}
+  if ( nrow(m2) <= 0 ) {
+    cat( "No outliers\n" )
+    return(list("outlier_score"= NULL , "outlier"= NULL , "count_results"= NULL ,
+                "top_outlier_zscore"= NULL , "top_outlier"= NULL , "top_outlier_boolean"= NULL ))
+  }
   ##### outlier analysis #####
   outlier = matrix(,nrow=dim(m2)[1],ncol=dim(m2)[2])
   row.names(outlier) = row.names(m2)
@@ -133,7 +137,7 @@ find_outlier = function(m, name="dataset", barplot = TRUE, plot=TRUE, printOrder
   #outlier_box2 = outlier # more stringent outlier definition based on outer fences
   
   # gene-wise outlier and outlier score
-	cat( paste( "Gene" , "Num_Samples" , "\n" , sep = "\t" ) )
+  cat( paste( "Gene" , "Num_Samples" , "\n" , sep = "\t" ) )
   for (i in 1:nrow(m2)){
     # modified z-score for outlier: Boris Iglewicz and David Hoaglin (1993), "Volume 16: How to Detect and Handle Outliers", The ASQC Basic References in Quality Control: Statistical Techniques, Edward F. Mykytka, Ph.D., Editor.
     # outlier_mzscore[i,]  = 0.6745*(m2[i,]-median(m2[i,], na.rm=TRUE))/mad(m2[i,], na.rm=TRUE)
@@ -141,10 +145,10 @@ find_outlier = function(m, name="dataset", barplot = TRUE, plot=TRUE, printOrder
     # box-plot definition of outlier
     IQR = quantile(m2[i,], probs=0.75, na.rm=T) - quantile(m2[i,], probs=0.25, na.rm=T) 
     outlier_box[i,] = (m2[i,] >= quantile(m2[i,], probs=0.75, na.rm=T) + as.numeric( multiplier )*IQR)
-	num_samples[i,] = sum( outlier_box[i,] )
+    num_samples[i,] = sum( outlier_box[i,] , na.rm =T)
     # outlier_box2[i,] = (m2[i,] >= quantile(m2[i,], probs=0.75, na.rm=T) + 3.5*IQR) #outer fences
     outlier_mzscore[i,] = (m2[i,] - quantile(m2[i,], probs=0.75, na.rm=T))/IQR
-	cat( paste( row.names(outlier)[i] , num_samples[i,] , "\n" , sep = "\t" ) )
+    cat( paste( row.names(outlier)[i] , num_samples[i,] , "\n" , sep = "\t" ) )
   }
   
   # output the outlier score table
@@ -242,6 +246,8 @@ find_outlier = function(m, name="dataset", barplot = TRUE, plot=TRUE, printOrder
     top_outlier.m <- melt(top_outlier[,c(1:num_shown)])
     top_outlier_zscore.m <- melt(top_outlier_zscore[,c(1:num_shown)])
     top_outlier_boolean.m <- melt(top_outlier_boolean[,c(1:num_shown)])
+    dim(top_outlier)
+    dim(top_outlier.m)
     colnames(top_outlier.m)=c("Var1","Var2","value")
     colnames(top_outlier_zscore.m)=c("Var1","Var2","value")
     colnames(top_outlier_boolean.m)=c("Var1","Var2","value")
@@ -258,7 +264,7 @@ find_outlier = function(m, name="dataset", barplot = TRUE, plot=TRUE, printOrder
     p = p + xlab("Sample") + ylab("Top Druggable Outliers") + theme_bw() + 
       theme(axis.title = element_text(size=18), axis.text.x = element_text(angle = 90, vjust = 0.5, colour="black", size=16), axis.text.y = element_blank(),axis.ticks.y = element_blank())#element_text(colour="black", size=16))
     p
-    ggsave(file=fn, height=h, width=w, useDingbats=FALSE)
+    ggsave(file=fn, useDingbats=FALSE)
   }
   
   
@@ -270,6 +276,13 @@ find_outlier = function(m, name="dataset", barplot = TRUE, plot=TRUE, printOrder
 ##### MAIN #####
 
 expTab.d = expTab[names %in% geneVector,-1] # extract only the geneVector genes; get rid of row names
-expTab.d = log2(unfactorize(expTab.d)+1) # log2 transofrm
-expTab_geneVector = find_outlier(expTab.d, name = paste( strsplit( geneListFile , "/" )[[1]][-1] , strsplit( matrixFile , "/" )[[1]][-1] , "geneVector_exp" , sep = "." ) , multiplier = cutoff ) # find outlier
+expTab.d = log2(unfactorize(expTab.d)+1) # log2 transform
+
+# return file names
+name_1 = geneListFile
+if (length(strsplit( geneListFile , "/" )[[1]]) > 1){ name_1 = strsplit( geneListFile , "/" )[[1]][-1]}
+name_2 = matrixFile
+if (length(strsplit( matrixFile , "/" )[[1]]) > 1){ name_2 = strsplit( matrixFile , "/" )[[1]][-1]}
+
+expTab_geneVector = find_outlier(expTab.d, name = paste( name_1 , name_2 , "geneVector_exp" , sep = "_" ) , multiplier = cutoff ) # find outlier
 
