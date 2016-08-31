@@ -241,7 +241,7 @@ find_outlier = function(m, name="dataset", barplot = TRUE, plot=TRUE, printOrder
   }
   
   # version that plotted everything
-  if (plot){
+  if (plot && num_shown>1){
     if (num_shown > 5) {num_shown=5} # hard threshold on numbers of outliers shown
     top_outlier.m <- melt(top_outlier[,c(1:num_shown)])
     top_outlier_zscore.m <- melt(top_outlier_zscore[,c(1:num_shown)])
@@ -249,9 +249,14 @@ find_outlier = function(m, name="dataset", barplot = TRUE, plot=TRUE, printOrder
     dim(top_outlier)
     dim(top_outlier.m)
     colnames(top_outlier.m)=c("Var1","Var2","value")
+   # print("top_outlier_zscore")
+   # print(top_outlier_zscore.m$Var2)
     colnames(top_outlier_zscore.m)=c("Var1","Var2","value")
     colnames(top_outlier_boolean.m)=c("Var1","Var2","value")
-    
+    print(top_outlier.m)
+    print(top_outlier_zscore.m)
+  
+   # print(top_outlier_boolean.m$Var2)
     fn = paste(pd, name, 'top_outlier_score_all.pdf',sep ="_")
     YlOrRd = brewer.pal(9, "YlOrRd") 
     getPalette = colorRampPalette(YlOrRd)
