@@ -8,3 +8,5 @@ Rscript --vanilla outlier_scaled.R -l gene_list -m gene_matrix -o output_directo
 
 # using example files
 Rscript --vanilla outlier.R -l gene_list_example.txt -m gene_matrix_example.tsv -o out
+# with log transformation
+Rscript --vanilla outlier.R -l gene_list_example.txt -m gene_matrix_example.tsv -o out -t 
