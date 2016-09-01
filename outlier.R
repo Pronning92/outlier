@@ -97,15 +97,12 @@ cat( paste( c( "There are" , nrow( expTab ) , "genes and" , ncol( expTab ) , "sa
 names = make.names(expTab[,1], unique =T)
 row.names(expTab) = names
 
-##### ALGORITHM #####
-
-# mis
-#system("mkdir figures")
-date=Sys.time()
+# set up dependencies
+date = Sys.time()
 date = sub(" .*","",date)
 pd = paste( outputDir , date , sep = "/" )
 
-##### functions #####
+##### FUNCTIONS #####
 unfactorize = function(df){
   for(i in which(sapply(df, class) == "factor")) df[[i]] = as.numeric(as.character(df[[i]]))
   return(df)
@@ -113,20 +110,21 @@ unfactorize = function(df){
 
 ##### use the box plot definition of outlier, then rank them by the outlier score ##### 
 find_outlier = function(m, name="dataset", barplot = TRUE, plot=TRUE, printOrderTables=F, minNum = 10 , multiplier = 1.5){ 
-  #w=40 for human panels with ~80 samples
   cat("##### OUTLIER ANALYSIS #####\n")
+  
+  # set up data
   m = as.matrix(m)
   num = nrow(m)
   m2 = as.matrix(m[rowSums(!is.na(m)) >= minNum, ])
   num_NA= nrow(m2)
   cat(paste("Looking for outliers in", deparse(substitute(genes)), "of", name, "\n", sep=" "))
   cat(paste("Original number of markers:", num, "; NA filtered:", num_NA, "\n", sep=" "))
-  
   if ( nrow(m2) <= 0 ) {
     cat( "No outliers\n" )
     return(list("outlier_score"= NULL , "outlier"= NULL , "count_results"= NULL ,
                 "top_outlier_zscore"= NULL , "top_outlier"= NULL , "top_outlier_boolean"= NULL ))
   }
+  
   ##### outlier analysis #####
   outlier = matrix(,nrow=dim(m2)[1],ncol=dim(m2)[2])
   row.names(outlier) = row.names(m2)
@@ -147,7 +145,7 @@ find_outlier = function(m, name="dataset", barplot = TRUE, plot=TRUE, printOrder
     outlier_box[i,] = (m2[i,] >= quantile(m2[i,], probs=0.75, na.rm=T) + as.numeric( multiplier )*IQR)
     num_samples[i,] = sum( outlier_box[i,] , na.rm =T)
     # outlier_box2[i,] = (m2[i,] >= quantile(m2[i,], probs=0.75, na.rm=T) + 3.5*IQR) #outer fences
-    outlier_mzscore[i,] = (m2[i,] - quantile(m2[i,], probs=0.75, na.rm=T))/IQR
+    outlier_mzscore[i,] = (m2[i,] - quantile(m2[i,], probs=0.75, na.rm=T))/IQR # inner fences
     cat( paste( row.names(outlier)[i] , num_samples[i,] , "\n" , sep = "\t" ) )
   }
   
@@ -239,24 +237,18 @@ find_outlier = function(m, name="dataset", barplot = TRUE, plot=TRUE, printOrder
     row_outlier = sum(top_outlier_boolean[i,], na.rm=T)
     if (row_outlier > num_shown) {num_shown = row_outlier}
   }
+  if (num_shown > 5) {num_shown=5} # hard threshold on numbers of outliers shown; if too many outliers
   
   # version that plotted everything
   if (plot && num_shown>1){
-    if (num_shown > 5) {num_shown=5} # hard threshold on numbers of outliers shown
     top_outlier.m <- melt(top_outlier[,c(1:num_shown)])
     top_outlier_zscore.m <- melt(top_outlier_zscore[,c(1:num_shown)])
     top_outlier_boolean.m <- melt(top_outlier_boolean[,c(1:num_shown)])
-    dim(top_outlier)
-    dim(top_outlier.m)
+    
     colnames(top_outlier.m)=c("Var1","Var2","value")
-   # print("top_outlier_zscore")
-   # print(top_outlier_zscore.m$Var2)
     colnames(top_outlier_zscore.m)=c("Var1","Var2","value")
     colnames(top_outlier_boolean.m)=c("Var1","Var2","value")
-    print(top_outlier.m)
-    print(top_outlier_zscore.m)
-  
-   # print(top_outlier_boolean.m$Var2)
+
     fn = paste(pd, name, 'top_outlier_score_all.pdf',sep ="_")
     YlOrRd = brewer.pal(9, "YlOrRd") 
     getPalette = colorRampPalette(YlOrRd)
@@ -281,13 +273,19 @@ find_outlier = function(m, name="dataset", barplot = TRUE, plot=TRUE, printOrder
 ##### MAIN #####
 
 expTab.d = expTab[names %in% geneVector,-1] # extract only the geneVector genes; get rid of row names
-expTab.d = log2(unfactorize(expTab.d)+1) # log2 transform
 
-# return file names
+# log2 transform if specified
+if (logTrans){
+  expTab.d = log2(unfactorize(expTab.d)+1)
+}
+
+# set up return file names
 name_1 = geneListFile
 if (length(strsplit( geneListFile , "/" )[[1]]) > 1){ name_1 = strsplit( geneListFile , "/" )[[1]][-1]}
 name_2 = matrixFile
 if (length(strsplit( matrixFile , "/" )[[1]]) > 1){ name_2 = strsplit( matrixFile , "/" )[[1]][-1]}
+name = paste( name_1 , name_2 , "geneVector_exp" , sep = "_" )
 
-expTab_geneVector = find_outlier(expTab.d, name = paste( name_1 , name_2 , "geneVector_exp" , sep = "_" ) , multiplier = cutoff ) # find outlier
+# run outlier analysis
+expTab_geneVector = find_outlier(expTab.d, name = name , multiplier = cutoff ) # find outlier
 
