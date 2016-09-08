@@ -57,7 +57,6 @@ get_list_arg = function( args , flag , nargs , default ) {
   return( vals );
 }
 
-
 parse_args = function() {
   args = commandArgs( trailingOnly = TRUE ); #tailingOnly = TRUE, arguments after --args are returned
   
@@ -110,7 +109,7 @@ unfactorize = function(df){
 }
 
 ##### use the box plot definition of outlier, then rank them by the outlier score ##### 
-find_outlier = function(m, name="dataset", barplot = TRUE, plot=TRUE, printOrderTables=F, minNum = 10 , multiplier = 1.5){ 
+find_outlier = function(m, name="dataset", barplot = TRUE, plot=TRUE, printOrderTables=F, minNum = 10 , multiplier){ 
   cat("##### OUTLIER ANALYSIS #####\n")
   
   # set up data
@@ -157,7 +156,7 @@ find_outlier = function(m, name="dataset", barplot = TRUE, plot=TRUE, printOrder
   num_outliers = sum(outlier_box, na.rm=T)
   cat(paste("Number_of_samples:", dim(outlier)[2], "Number_of_outliers:", num_outliers,"; Avg_outlier_per_sample:", num_outliers/dim(outlier)[2], "\n\n", sep = " "))
   
-  results = data.frame(rowSums(outlier_mzscore >= 1))
+  results = data.frame(rowSums(outlier_mzscore >= multiplier,na.rm=TRUE))
   colnames(results)[1]= "count"
   results = results[order(results[,1], decreasing=T),,drop=F]
   results$cohort = name
