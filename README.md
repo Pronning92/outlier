@@ -9,6 +9,6 @@ Rscript --vanilla outlier_scaled.R -l gene_list -m gene_matrix -o output_directo
 # using example files
 Rscript --vanilla outlier.R -l gene_list_example.txt -m gene_matrix_example.tsv -o out
 # with log transformation
-Rscript --vanilla outlier.R -l gene_list_example.txt -m gene_matrix_example.tsv -o out -t 
+Rscript --vanilla outlier.R -l gene_list_example.txt -m gene_matrix_example.tsv -o out -t 1 
 # with outlier score cut-off: default 1.5
-Rscript --vanilla outlier.R -l gene_list_example.txt -m gene_matrix_example.tsv -o out -t -c 1.5
+Rscript --vanilla outlier.R -l gene_list_example.txt -m gene_matrix_example.tsv -o out -t 1 -c 1.5
