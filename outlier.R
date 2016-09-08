@@ -84,6 +84,7 @@ geneListFile = args$geneListFile
 outputDir = args$outputDir
 odir = strsplit( outputDir , "/" )
 matrixFile = args$matrixFile
+logTrans = args$logTrans
 
 cutoff = 1.5
 if (args$cutoff != ""){cutoff = args$cutoff}
