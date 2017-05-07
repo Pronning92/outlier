@@ -8,12 +8,12 @@ two main stateps:
 
 ### Prerequisites ###
 
-'''
+```
 install.packages("EnvStats")
-'''
+```
 
 ### Example ###
 
-'''
+```
 Rscript Simple_BoxCox_Outlier_Analysis.R BoxCox_example1.txt
-'''
+```
