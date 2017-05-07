@@ -73,7 +73,8 @@ SMR[, "BoxCoxFreq"] = transformedVec
 SMR[, "SMRZScore"] = zscoresVec
 
 # make gene name
-SMR[, "GeneName"] = sapply(strsplit(as.vector(SMR$V1),"[.]"), `[`, 1) 
+#SMR[, "GeneName"] = sapply(strsplit(as.vector(SMR$V1),"[.]"), `[`, 1)
+SMR[, "GeneName"] = as.vector(SMR$V1)
 
 # determine top 10% cutoff
 cutoff = as.numeric(quantile(as.vector(as.numeric(SMR[, "SMRZScore"])), 0.90))
@@ -82,8 +83,8 @@ totalRegions = length(unique(SMR$V1))
 numberOfSMRgenes = length(unique(SMR[SMR$SMRZScore>=cutoff,]$GeneName))
 cat( paste( "cutoff = ", cutoff , "Number of SMRs = ", numberOfSMR, "out of total regions = ", totalRegions, "and number of SMR genes =", numberOfSMRgenes, "\n" ) )
 
-write.table(SMR, file = paste("BoxCox_", fn, sep = ""), quote = FALSE, sep = "\t", row.names = FALSE)
-write.table(SMR[SMR$SMRZScore>=cutoff,], file = paste("SMR_", fn, sep = ""), quote = FALSE, sep = "\t", row.names = FALSE)
+write.table(SMR, file = "Transformed_example_file.txt", quote = FALSE, sep = "\t", row.names = FALSE)
+write.table(SMR[SMR$SMRZScore>=cutoff,], file = "SMR_exmaple_file.txt", quote = FALSE, sep = "\t", row.names = FALSE)
 
 
 # Plot Zscore distribution
@@ -92,12 +93,12 @@ p = p + geom_freqpoly(aes(x = as.vector(SMR$SMRZScore)), bins=90, colour="blue" 
 p = p + ggtitle("BoxCox Zscores of Mutation Frequency")
 p = p + geom_vline(xintercept = cutoff)
 p = p + ylab("Number of Regions") + xlab("Z-Score of the Frequency")
-ggsave(paste("/Users/aweerasi/DingLab/NonCoding/ICGC/SMR_clac/","freqPlot_Zscore_", fn, ".pdf", sep = ""), width=10, useDingbat=F)
+ggsave("./freqPlot_Zscore.pdf", width=10, useDingbat=F)
 
 # Plot original distribution
 p = ggplot(SMR)+ theme_bw()
 p = p + geom_freqpoly(aes(x = as.vector(SMR$V2)), bins=90, colour="red" )
 p = p + ggtitle("Mutation Frequency")
 p = p + ylab("Number of Regions") + xlab("Mutation Frequency")
-ggsave(paste("/Users/aweerasi/DingLab/NonCoding/ICGC/SMR_clac/","freqPlot_", fn, ".pdf", sep = ""), width=10, useDingbat=F)
+ggsave("./freqPlot_regular.pdf", width=10, useDingbat=F)
 
